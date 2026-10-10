@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
-from os import PathLike
+from os import PathLike, fspath
 from typing import Protocol
 
 from pygments.lexers import find_lexer_class_for_filename, get_lexer_by_name
@@ -52,9 +52,13 @@ class Span:
 
 @dataclass(frozen=True)
 class Style:
-    """How a token kind is drawn. ``color`` accepts any Toga color value."""
+    """How a token kind is drawn.
 
-    color: Color | str
+    ``color`` accepts any Toga color value, including a string, and is stored as a
+    :class:`~toga.colors.Color`.
+    """
+
+    color: Color
     bold: bool = False
     italic: bool = False
 
@@ -78,9 +82,9 @@ DEFAULT_THEME: Theme = {
     TokenKind.VARIABLE: Style("#e45649"),
 }
 
-# Ordered most-specific first. The first row whose Pygments type contains the token
-# wins, so Operator.Word must precede Operator, and the Name.* rows precede nothing
-# more general because bare Name falls through to TEXT.
+# Ordered most-specific first: the first row whose Pygments type contains the token
+# wins, so Operator.Word must precede Operator. Anything unmatched, including bare
+# Name, is TEXT.
 _TOKEN_TABLE = [
     (Comment, TokenKind.COMMENT),
     (String, TokenKind.STRING),
@@ -108,10 +112,10 @@ def token_kind(token_type) -> TokenKind:
 
 
 def merge_spans(spans: Iterable[Span]) -> list[Span]:
-    """Drop TEXT spans and merge adjacent spans of the same kind."""
+    """Drop TEXT and empty spans, and merge adjacent spans of the same kind."""
     merged: list[Span] = []
     for span in spans:
-        if span.kind is TokenKind.TEXT:
+        if span.kind is TokenKind.TEXT or span.end <= span.start:
             continue
         if merged and merged[-1].kind is span.kind and merged[-1].end == span.start:
             merged[-1] = Span(merged[-1].start, span.end, span.kind)
@@ -160,7 +164,7 @@ def language_for_filename(path: str | PathLike) -> str | None:
 
     The whole filename is matched, so names such as ``Makefile`` resolve.
     """
-    lexer_class = find_lexer_class_for_filename(str(path))
+    lexer_class = find_lexer_class_for_filename(fspath(path))
     return None if lexer_class is None else lexer_class.aliases[0]
 
 
@@ -192,8 +196,9 @@ def utf16_line_starts(text: str) -> list[int]:
     """Return the UTF-16 offset of the first character of each logical line."""
     starts = [0]
     offset = 0
-    for ch in text:
-        offset += 2 if ord(ch) > 0xFFFF else 1
-        if ch == "\n":
-            starts.append(offset)
+    for line in text.split("\n")[:-1]:
+        # An astral character is two UTF-16 units. "surrogatepass" keeps a lone
+        # surrogate at one unit rather than raising.
+        offset += len(line.encode("utf-16-le", "surrogatepass")) // 2 + 1
+        starts.append(offset)
     return starts

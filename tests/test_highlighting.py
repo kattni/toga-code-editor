@@ -6,6 +6,7 @@ from toga_code_editor.highlighting import (
     Span,
     TokenKind,
     language_for_filename,
+    merge_spans,
     to_utf16_spans,
     utf16_line_starts,
 )
@@ -14,7 +15,7 @@ from toga_code_editor.highlighting import (
 def test_python_snippet():
     """A Python snippet lexes into merged, offset-correct spans; names are dropped."""
     spans = PygmentsHighlighter("python").highlight(
-        "def f(x):\n    return x + 1  # hi\n"
+        "def f(x):\n    return x and 1  # hi\n"
     )
     assert spans == [
         Span(0, 3, TokenKind.KEYWORD),
@@ -22,10 +23,20 @@ def test_python_snippet():
         Span(5, 6, TokenKind.PUNCTUATION),
         Span(7, 9, TokenKind.PUNCTUATION),  # ")" and ":" merged into one span
         Span(14, 20, TokenKind.KEYWORD),
-        Span(23, 24, TokenKind.OPERATOR),
-        Span(25, 26, TokenKind.NUMBER),
-        Span(28, 32, TokenKind.COMMENT),
+        Span(23, 26, TokenKind.KEYWORD),  # "and" is Operator.Word, not an operator
+        Span(27, 28, TokenKind.NUMBER),
+        Span(30, 34, TokenKind.COMMENT),
     ]
+
+
+def test_merge_spans_drops_empty_spans():
+    """A zero-length span is dropped, and its neighbors merge across it."""
+    spans = [
+        Span(0, 1, TokenKind.NUMBER),
+        Span(1, 1, TokenKind.KEYWORD),
+        Span(1, 2, TokenKind.NUMBER),
+    ]
+    assert merge_spans(spans) == [Span(0, 2, TokenKind.NUMBER)]
 
 
 def test_unknown_language():
@@ -50,9 +61,21 @@ def test_utf16_offsets():
     assert utf16_line_starts("\U0001f600\r\nb") == [0, 4]
 
 
+class FSPath:
+    """A PathLike whose str() is not its path; only os.fspath() sees "foo.py"."""
+
+    def __fspath__(self):
+        return "foo.py"
+
+
 @pytest.mark.parametrize(
     "name, expected",
-    [("foo.py", "python"), ("Makefile", "make"), ("notes.xyz", None)],
+    [
+        ("foo.py", "python"),
+        ("Makefile", "make"),
+        ("notes.xyz", None),
+        (FSPath(), "python"),
+    ],
 )
 def test_language_for_filename(name, expected):
     assert language_for_filename(name) == expected

@@ -33,11 +33,11 @@ editor.language = language_for_filename(path)
 - `show_line_numbers`: shows or hides the gutter. Default `True`.
 - `theme`: a mapping from `TokenKind` to `Style`. `None` selects the built-in `DEFAULT_THEME`.
 
-Unless you give the widget a font family, it uses a monospace font. Autocorrect, smart quotes, smart dashes, auto-capitalization, and spell checking are always off.
+Unless you give the widget a font family, it uses a monospace font. Autocorrect, smart quotes, smart dashes, smart insert and delete, auto-capitalization, and spell checking are always off.
 
 ### Themes
 
-A theme is a plain mapping. Kinds you leave out are drawn in the widget's normal text color.
+A theme is a plain mapping. Kinds you leave out are drawn in the widget's normal text color. `DEFAULT_THEME` is read-only, so unpack it into a new dict to change it, as below.
 
 ```python
 from toga_code_editor import DEFAULT_THEME, Style, TokenKind

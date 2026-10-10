@@ -46,6 +46,12 @@ class TogaCodeTextView(TogaTextView):
         self.interface.on_change()
         self.impl.text_changed()
 
+    @objc_method
+    def paste_(self, sender) -> None:
+        # Rich text from another app would keep attributes that the re-highlight
+        # never resets, so paste the plain text only.
+        self.pasteAsPlainText(sender)
+
 
 class TogaLineNumberView(NSRulerView):
     impl = objc_property(object, weak=True)
@@ -89,6 +95,8 @@ class CodeEditor(MultilineTextInput):
         self.native_text.setAutomaticSpellingCorrectionEnabled(False)
         self.native_text.setAutomaticTextReplacementEnabled(False)
         self.native_text.setAutomaticTextCompletionEnabled(False)
+        # Smart insert and delete add and remove spaces around words.
+        self.native_text.setSmartInsertDeleteEnabled(False)
 
         self.native_text.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable
         self.native.documentView = self.native_text
@@ -126,6 +134,7 @@ class CodeEditor(MultilineTextInput):
         # once the storage is styled, so the base style is tracked here instead.
         self.base_font = self.native_text.font
         self.base_color = NSColor.textColor
+        self.rebuild_gutter_attributes()
 
         self.theme = {}
         self.attributes = {}
@@ -144,6 +153,7 @@ class CodeEditor(MultilineTextInput):
         super().set_font(font)
         self.base_font = font._impl.native
         self.rebuild_attributes()
+        self.rebuild_gutter_attributes()
         self.apply_highlights()
         self.text_changed()
 
@@ -222,11 +232,17 @@ class CodeEditor(MultilineTextInput):
             self.ruler.ruleThickness = thickness
         self.ruler.setNeedsDisplay(True)
 
-    def gutter_label(self, text):
+    def rebuild_gutter_attributes(self):
+        # Built once per font, rather than once per visible line per draw.
         attributes = NSMutableDictionary.alloc().init()
         attributes[NSFontAttributeName] = self.base_font
         attributes[NSForegroundColorAttributeName] = NSColor.secondaryLabelColor
-        return NSAttributedString.alloc().initWithString(text, attributes=attributes)
+        self.gutter_attributes = attributes
+
+    def gutter_label(self, text):
+        return NSAttributedString.alloc().initWithString(
+            text, attributes=self.gutter_attributes
+        )
 
     def draw_line_numbers(self):
         layout = self.layout_manager
@@ -235,8 +251,14 @@ class CodeEditor(MultilineTextInput):
         inset = self.native_text.textContainerInset
         text_length = self.native_text.textStorage.length()
 
+        # The layout manager works in container coordinates, which sit inset.width
+        # and inset.height inside the view's own.
+        container_rect = NSRect(
+            NSPoint(visible.origin.x - inset.width, visible.origin.y - inset.height),
+            visible.size,
+        )
         glyph_range = layout.glyphRangeForBoundingRect(
-            visible, inTextContainer=container
+            container_rect, inTextContainer=container
         )
         char_range = layout.characterRangeForGlyphRange(
             glyph_range, actualGlyphRange=None
@@ -260,5 +282,5 @@ class CodeEditor(MultilineTextInput):
                 )
             label = self.gutter_label(str(number))
             x = thickness - GUTTER_PADDING - label.size().width
-            y = fragment.origin.y - visible.origin.y + inset.height
+            y = fragment.origin.y + inset.height - visible.origin.y
             label.drawAtPoint(NSPoint(x, y))

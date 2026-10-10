@@ -68,7 +68,10 @@ class CodeEditor(MultilineTextInput):
         self.gutter = TextView(self._native_activity)
         self.gutter.setId(View.generateViewId())
         self.gutter.setGravity(Gravity.END | Gravity.TOP)
-        self.gutter.setTextColor(self.native.getHintTextColors())
+        # Themes always resolve a hint color; fall back to the text color if not.
+        self.gutter.setTextColor(
+            self.native.getHintTextColors() or self.native.getTextColors()
+        )
         # A column of line numbers is noise to a screen reader.
         self.gutter.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO)
         # Without a movement method, a TextView scrolls back to its start on the
@@ -114,8 +117,9 @@ class CodeEditor(MultilineTextInput):
         self.prefer_keyboard_resize()
         self.theme = {}
         # Android keeps the spans itself, so only the native objects to remove are
-        # tracked here; set_font does not need to re-apply them.
+        # tracked here; set_font and set_color do not need to re-apply them.
         self.active_spans = []
+        self.styled = False  # whether active_spans holds a bold or italic span
 
     def prefer_keyboard_resize(self):
         # By default Android pans the whole window to keep the cursor above the soft
@@ -167,6 +171,7 @@ class CodeEditor(MultilineTextInput):
         for span in self.active_spans:
             editable.removeSpan(span)
         self.active_spans = []
+        styled = False
 
         for span in to_utf16_spans(str(editable), spans):
             style = self.theme.get(span.kind)
@@ -178,13 +183,18 @@ class CodeEditor(MultilineTextInput):
                     Typeface.ITALIC if style.italic else Typeface.NORMAL
                 )
                 native_spans.append(StyleSpan(typeface_style))
+                styled = True
             for native_span in native_spans:
                 editable.setSpan(
                     native_span, span.start, span.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
                 )
                 self.active_spans.append(native_span)
-        # A bold or italic span can re-wrap a line without any text change.
-        self.post_gutter_update()
+
+        # A bold or italic span can re-wrap a line without any text change, so
+        # rebuild the gutter when one was added or removed.
+        if styled or self.styled:
+            self.post_gutter_update()
+        self.styled = styled
 
     def set_show_line_numbers(self, value):
         # A GONE anchor collapses to zero width, so the editor fills the row.

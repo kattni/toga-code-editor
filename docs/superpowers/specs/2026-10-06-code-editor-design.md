@@ -212,7 +212,7 @@ Whole-buffer re-lexing is the right first version. Pygments cannot resume mid-fi
 
 ### Shared contract
 
-Each backend module subclasses its backend's `MultilineTextInput` implementation, so value, readonly, placeholder, scrolling, and layout are inherited. On top it implements `set_theme`, `set_highlights`, and `set_show_line_numbers`, calls `interface._schedule_rehighlight()` from its native change callback before `interface.on_change()`, and forces autocorrect and smart punctuation off at creation. Each backend keeps the last span list and re-applies it after `set_font` and `set_color`, because Toga's implementations of those repaint the whole text storage.
+Each backend module subclasses its backend's `MultilineTextInput` implementation, so value, readonly, placeholder, scrolling, and layout are inherited. On top it implements `set_theme`, `set_highlights`, and `set_show_line_numbers`, calls `interface._schedule_rehighlight()` from its native change callback before `interface.on_change()`, and forces autocorrect and smart punctuation off at creation. Cocoa and iOS keep the last span list and re-apply it after `set_font` and `set_color`, because Toga's implementations of those repaint the whole text storage. Android's spans live in the `Editable` and survive both, so it keeps only the native span objects it must remove.
 
 ### Cocoa
 

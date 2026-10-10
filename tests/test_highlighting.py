@@ -17,7 +17,7 @@ from toga_code_editor.highlighting import (
 def test_python_snippet():
     """A Python snippet lexes into merged, offset-correct spans; names are dropped."""
     spans = PygmentsHighlighter("python").highlight(
-        "def f(x):\n    return x and 1  # hi\n"
+        "def f(x):\n    return x + 1 and 2  # hi\n"
     )
     assert spans == [
         Span(0, 3, TokenKind.KEYWORD),
@@ -25,9 +25,11 @@ def test_python_snippet():
         Span(5, 6, TokenKind.PUNCTUATION),
         Span(7, 9, TokenKind.PUNCTUATION),  # ")" and ":" merged into one span
         Span(14, 20, TokenKind.KEYWORD),
-        Span(23, 26, TokenKind.KEYWORD),  # "and" is Operator.Word, not an operator
-        Span(27, 28, TokenKind.NUMBER),
-        Span(30, 34, TokenKind.COMMENT),
+        Span(23, 24, TokenKind.OPERATOR),
+        Span(25, 26, TokenKind.NUMBER),
+        Span(27, 30, TokenKind.KEYWORD),  # "and" is Operator.Word, not an operator
+        Span(31, 32, TokenKind.NUMBER),
+        Span(34, 38, TokenKind.COMMENT),
     ]
 
 

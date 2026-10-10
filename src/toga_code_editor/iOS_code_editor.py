@@ -15,12 +15,7 @@ from toga_iOS.libs import (
     NSAttributedString,
     NSFontAttributeName,
     NSForegroundColorAttributeName,
-    NSLayoutAttributeBottom,
     NSLayoutAttributeLeading,
-    NSLayoutAttributeTop,
-    NSLayoutAttributeTrailing,
-    NSLayoutConstraint,
-    NSLayoutRelationEqual,
     UIColor,
     UIFont,
     UIFontDescriptorTraitBold,
@@ -49,7 +44,6 @@ UITextSmartDashesTypeNo = 1
 UITextSmartInsertDeleteTypeNo = 1
 
 GUTTER_PADDING = 6
-PLACEHOLDER_LEADING = 4.0
 
 
 class TogaCodeTextView(TogaMultilineTextView):
@@ -103,9 +97,12 @@ class CodeEditor(MultilineTextInput):
         self.native.placeholder_label = self.placeholder_label
 
         # UITextView.font and .textColor read back the *first character's* attributes
-        # once the storage is styled, so the base style is tracked here instead.
+        # once the storage is styled, so the base style is tracked here instead. Unlike
+        # an NSTextView, a UITextView created with no text reports no font, so every
+        # use of base_font is guarded until set_font supplies one.
         self.base_font = self.native.font
         self.base_color = UIColor.labelColor
+        self.rebuild_gutter_attributes()
 
         self.theme = {}
         self.attributes = {}
@@ -119,52 +116,17 @@ class CodeEditor(MultilineTextInput):
         self.text_changed()
 
     def constrain_placeholder_label(self):
-        # Same constraints as toga_iOS, but keeping a reference to the leading one
-        # so the gutter can push the placeholder right.
-        self.placeholder_leading = NSLayoutConstraint.constraintWithItem(
-            self.placeholder_label,
-            attribute__1=NSLayoutAttributeLeading,
-            relatedBy=NSLayoutRelationEqual,
-            toItem=self.native,
-            attribute__2=NSLayoutAttributeLeading,
-            multiplier=1.0,
-            constant=PLACEHOLDER_LEADING,
+        super().constrain_placeholder_label()
+        # Keep a handle on Toga's leading constraint, and its original inset, so
+        # the gutter can push the placeholder right.
+        label = self.placeholder_label.ptr.value
+        self.placeholder_leading = next(
+            constraint
+            for constraint in self.native.constraints()
+            if constraint.firstItem.ptr.value == label
+            and constraint.firstAttribute == NSLayoutAttributeLeading
         )
-        trailing_constraint = NSLayoutConstraint.constraintWithItem(
-            self.placeholder_label,
-            attribute__1=NSLayoutAttributeTrailing,
-            relatedBy=NSLayoutRelationEqual,
-            toItem=self.native,
-            attribute__2=NSLayoutAttributeTrailing,
-            multiplier=1.0,
-            constant=0,
-        )
-        top_constraint = NSLayoutConstraint.constraintWithItem(
-            self.placeholder_label,
-            attribute__1=NSLayoutAttributeTop,
-            relatedBy=NSLayoutRelationEqual,
-            toItem=self.native,
-            attribute__2=NSLayoutAttributeTop,
-            multiplier=1.0,
-            constant=8.0,
-        )
-        bottom_constraint = NSLayoutConstraint.constraintWithItem(
-            self.placeholder_label,
-            attribute__1=NSLayoutAttributeBottom,
-            relatedBy=NSLayoutRelationEqual,
-            toItem=self.native,
-            attribute__2=NSLayoutAttributeBottom,
-            multiplier=1.0,
-            constant=0,
-        )
-        self.native.addConstraints(
-            [
-                self.placeholder_leading,
-                trailing_constraint,
-                top_constraint,
-                bottom_constraint,
-            ]
-        )
+        self.placeholder_inset = self.placeholder_leading.constant
 
     # Inherited MultilineTextInput methods that must keep the gutter and colors in sync
 
@@ -176,6 +138,7 @@ class CodeEditor(MultilineTextInput):
         super().set_font(font)
         self.base_font = font._impl.native
         self.rebuild_attributes()
+        self.rebuild_gutter_attributes()
         self.apply_highlights()
         self.text_changed()
 
@@ -212,10 +175,15 @@ class CodeEditor(MultilineTextInput):
             if style.italic:
                 traits |= UIFontDescriptorTraitItalic
             if traits and base_font is not None:
-                # If there is no font with the requested traits, this returns None.
-                font = UIFont.fontWithDescriptor(
-                    base_font.fontDescriptor.fontDescriptorWithSymbolicTraits(traits),
-                    size=base_font.pointSize,
+                # A font without a face for the requested traits yields no descriptor,
+                # and a descriptor can still yield no font.
+                descriptor = base_font.fontDescriptor.fontDescriptorWithSymbolicTraits(
+                    traits
+                )
+                font = (
+                    None
+                    if descriptor is None
+                    else UIFont.fontWithDescriptor(descriptor, size=base_font.pointSize)
                 )
                 if font is not None:
                     attributes[NSFontAttributeName] = font
@@ -262,15 +230,21 @@ class CodeEditor(MultilineTextInput):
             self.native.textContainerInset = UIEdgeInsets(
                 inset.top, inset.left + width, inset.bottom, inset.right
             )
-            self.placeholder_leading.constant = PLACEHOLDER_LEADING + width
+            self.placeholder_leading.constant = self.placeholder_inset + width
         self.native.setNeedsDisplay()
 
-    def gutter_label(self, text):
+    def rebuild_gutter_attributes(self):
+        # Built once per font, rather than once per visible line per draw.
         attributes = NSMutableDictionary.alloc().init()
         if self.base_font is not None:
             attributes[NSFontAttributeName] = self.base_font
         attributes[NSForegroundColorAttributeName] = UIColor.secondaryLabelColor
-        return NSAttributedString.alloc().initWithString(text, attributes=attributes)
+        self.gutter_attributes = attributes
+
+    def gutter_label(self, text):
+        return NSAttributedString.alloc().initWithString(
+            text, attributes=self.gutter_attributes
+        )
 
     def draw_line_numbers(self):
         if not self.show_line_numbers:

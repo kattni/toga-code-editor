@@ -116,10 +116,6 @@ class CodeEditor(MultilineTextInput):
         self.disable_suggestions()
         self.prefer_keyboard_resize()
         self.theme = {}
-        # Android keeps the spans itself, so only the native objects to remove are
-        # tracked here; set_font and set_color do not need to re-apply them.
-        self.active_spans = []
-        self.styled = False  # whether active_spans holds a bold or italic span
 
     def prefer_keyboard_resize(self):
         # By default Android pans the whole window to keep the cursor above the soft
@@ -168,10 +164,15 @@ class CodeEditor(MultilineTextInput):
 
     def set_highlights(self, spans):
         editable = self.native.getText()
-        for span in self.active_spans:
-            editable.removeSpan(span)
-        self.active_spans = []
+        # Strip every color and style span, not only the ones applied here, so
+        # formatting that arrived with pasted rich text is reset as well. Android
+        # keeps the spans in the Editable, so set_font and set_color need no
+        # re-apply and nothing is tracked between calls.
         styled = False
+        for span_class in (ForegroundColorSpan, StyleSpan):
+            for span in editable.getSpans(0, editable.length(), span_class):
+                editable.removeSpan(span)
+                styled |= span_class is StyleSpan
 
         for span in to_utf16_spans(str(editable), spans):
             style = self.theme.get(span.kind)
@@ -188,13 +189,11 @@ class CodeEditor(MultilineTextInput):
                 editable.setSpan(
                     native_span, span.start, span.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
                 )
-                self.active_spans.append(native_span)
 
         # A bold or italic span can re-wrap a line without any text change, so
-        # rebuild the gutter when one was added or removed.
-        if styled or self.styled:
+        # rebuild the gutter when one was present before or after this pass.
+        if styled:
             self.post_gutter_update()
-        self.styled = styled
 
     def set_show_line_numbers(self, value):
         # A GONE anchor collapses to zero width, so the editor fills the row.

@@ -40,7 +40,7 @@ toga-code-editor/
   README.md, LICENSE, CHANGELOG.md
 ```
 
-Runtime dependencies: `toga-core >= 0.5.7` and `pygments`. The entry-point factory shipped in Toga 0.5.4, but the pin is 0.5.7 because the package subclasses internal backend classes and supports only the versions it has been tested against. Raise the floor deliberately when a new Toga release lands. No Toga backend is a dependency of the package; the app declares its platform backend as usual.
+Runtime dependencies: `toga-core >= 0.5.7, < 0.6` and `pygments`. The entry-point factory shipped in Toga 0.5.4, but the pin is 0.5.7 because the package subclasses internal backend classes and supports only the versions it has been tested against. Raise the floor deliberately when a new Toga release lands. No Toga backend is a dependency of the package; the app declares its platform backend as usual.
 
 Entry points, one table per backend:
 
@@ -261,7 +261,7 @@ Real backends are checked by running the example app on each platform and typing
 
 The example app at `examples/editor` is a Briefcase app that bundles a few sample files and offers a `Selection` to pick one, a `Selection` for language, and a `Switch` for line numbers. It depends on the package by relative path, as Toga's `customwidget` example does.
 
-CI is one pre-commit job and one pytest job on Ubuntu with `TOGA_BACKEND=toga_dummy`.
+CI is one Ubuntu job that runs pre-commit, then pytest with coverage against `toga_dummy`.
 
 Docs are the README and docstrings. Changelog fragments go in `changes/` for towncrier.
 

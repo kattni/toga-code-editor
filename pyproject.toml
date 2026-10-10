@@ -22,7 +22,7 @@ classifiers = [
     "Topic :: Software Development :: Widget Sets",
 ]
 dependencies = [
-    "toga-core >= 0.5.7",
+    "toga-core >= 0.5.7, < 0.6",
     "pygments >= 2.19",
 ]
 

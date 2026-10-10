@@ -8,12 +8,11 @@ A [Toga](https://toga.beeware.org) widget for editing code, with line numbers an
 pip install toga-code-editor
 ```
 
-The package depends on `toga-core` and `pygments`. Your app installs the Toga backend for its platform as usual; `toga-code-editor` contributes its implementation for that backend through entry points, the same way Toga's own widgets are found.
+The package depends on `pygments` and on `toga-core` 0.5.7 or later, but not 0.6, because it subclasses Toga backend internals that can change between minor versions. Your app installs the Toga backend for its platform as usual; `toga-code-editor` contributes its implementation for that backend through entry points, the same way Toga's own widgets are found.
 
 ## Usage
 
 ```python
-import toga
 from toga_code_editor import CodeEditor, language_for_filename
 
 editor = CodeEditor(
@@ -51,7 +50,7 @@ theme = {
 editor.theme = theme
 ```
 
-`Style.color` accepts anything Toga's color properties accept. The token kinds are `KEYWORD`, `BUILTIN`, `DEFINITION`, `DECORATOR`, `STRING`, `NUMBER`, `COMMENT`, `OPERATOR`, `PUNCTUATION`, `TAG`, `ATTRIBUTE`, and `VARIABLE`.
+`Style.color` accepts anything Toga's color properties accept. The token kinds are `KEYWORD`, `BUILTIN`, `DEFINITION`, `DECORATOR`, `STRING`, `NUMBER`, `COMMENT`, `OPERATOR`, `PUNCTUATION`, `TAG`, `ATTRIBUTE`, and `VARIABLE`. Everything else, including plain names, is `TEXT`, which is never styled.
 
 ## Platform notes
 
@@ -59,7 +58,7 @@ editor.theme = theme
 - **iOS** and **Android** draw the gutter themselves. Theme colors do not change with the system appearance; the default theme is chosen to be legible on both light and dark backgrounds.
 - Highlighting re-lexes the whole buffer after a short pause in typing. Files of a few thousand lines are fine on a desktop; very large files are slower on phones.
 - Some third-party Android keyboards ignore the flag that disables suggestions.
-- On Android, the widget asks the window to shrink its content when the soft keyboard appears, so the editor scrolls internally and the rest of the layout stays put. It only does this when the app has not chosen a soft-input mode itself.
+- On Android, the widget asks the window to shrink its content when the soft keyboard appears, so the editor scrolls internally and the rest of the layout stays put. It only does this when the app has not chosen a soft-input mode itself. Android deprecated that request in API 30 and ignores it on Android 15 and later for apps that target SDK 35 or later, which run edge to edge; there the window keeps its size when the keyboard appears. Briefcase's current Android template targets SDK 36, so the example app is in that group.
 
 ## Developing
 
@@ -78,7 +77,7 @@ briefcase run iOS
 briefcase run android
 ```
 
-On macOS and iOS the example installs the widget straight from this repository; add `-r` after changing the widget source so Briefcase reinstalls it. On Android the example installs the widget from a wheel in `dist/`, because Gradle rejects a path requirement whose directory contains the Android build tree. Build the wheel before each Android run that should pick up widget changes:
+On macOS and iOS the example installs the widget straight from this repository; add `-r` after changing the widget source so Briefcase reinstalls it. On Android the example installs the widget from a wheel in `dist/`, because Gradle rejects a path requirement whose directory contains the Android build tree. The example's Android requirement names that wheel file, version and all, so a version bump must update `examples/editor/pyproject.toml` too, and a stale wheel in `dist/` ships the old code without complaint. Build the wheel from the repository root before each Android run that should pick up widget changes:
 
 ```console
 uv build --wheel

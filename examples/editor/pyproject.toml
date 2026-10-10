@@ -16,8 +16,9 @@ author = "Kattni"
 author_email = "hello@kattni.com"
 description = "A code editor demonstrating the toga-code-editor widget."
 # macOS and iOS install the widget from this repository; Android installs it from a
-# built wheel (run `uv build` first), because Gradle rejects a path requirement whose
-# directory contains the Android build tree.
+# built wheel (run `uv build --wheel` from the repository root first), because Gradle
+# rejects a path requirement whose directory contains the Android build tree. The
+# wheel filename below carries the package version, so a version bump must update it.
 requires = []
 
 [tool.briefcase.app.editor]

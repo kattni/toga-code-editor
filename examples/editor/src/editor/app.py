@@ -29,7 +29,7 @@ class Editor(toga.App):
         )
         self.status = toga.Label("", flex=1)
 
-        # Two rows on mobile, so the controls fit a phone's width.
+        # Two rows on mobile, so the controls fit a narrow screen.
         if MOBILE:
             rows = [[self.sample, self.language], [self.line_numbers, self.status]]
         else:

@@ -63,7 +63,8 @@ class Style:
     bold: bool = False
     italic: bool = False
 
-    # Written out so the constructor's type is Color | str while the field is Color.
+    # Written out so the constructor's type is Color | str while the field is Color;
+    # keep its parameters in step with the fields above.
     def __init__(self, color: Color | str, bold: bool = False, italic: bool = False):
         object.__setattr__(self, "color", Color.parse(color))
         object.__setattr__(self, "bold", bold)

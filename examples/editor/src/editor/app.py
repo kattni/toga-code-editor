@@ -2,10 +2,12 @@ from pathlib import Path
 
 import toga
 from toga.constants import COLUMN, ROW
+from toga.platform import current_platform
 
 from toga_code_editor import CodeEditor, language_for_filename
 
 SAMPLES = Path(__file__).parent / "resources" / "samples"
+MOBILE = current_platform in {"iOS", "android"}
 NO_LANGUAGE = "none"
 LANGUAGES = ["python", "json", "html", NO_LANGUAGE]
 
@@ -14,7 +16,11 @@ class Editor(toga.App):
     def startup(self):
         self.editor = CodeEditor(flex=1, on_change=self.on_edit)
         self.sample = toga.Selection(
-            items=sorted(path.name for path in SAMPLES.iterdir()),
+            items=sorted(
+                path.name
+                for path in SAMPLES.iterdir()
+                if path.is_file() and not path.name.startswith(".")
+            ),
             on_change=self.load_sample,
         )
         self.language = toga.Selection(items=LANGUAGES, on_change=self.set_language)
@@ -23,21 +29,13 @@ class Editor(toga.App):
         )
         self.status = toga.Label("", flex=1)
 
-        # Two rows so the controls fit a phone's width.
+        controls = [self.sample, self.language, self.line_numbers, self.status]
+        # Two rows on a phone, so the controls fit its width.
+        rows = [controls[:2], controls[2:]] if MOBILE else [controls]
         toolbar = toga.Box(
             children=[
-                toga.Box(
-                    children=[self.sample, self.language],
-                    direction=ROW,
-                    align_items="center",
-                    gap=5,
-                ),
-                toga.Box(
-                    children=[self.line_numbers, self.status],
-                    direction=ROW,
-                    align_items="center",
-                    gap=5,
-                ),
+                toga.Box(children=row, direction=ROW, align_items="center", gap=5)
+                for row in rows
             ],
             direction=COLUMN,
             margin=5,

@@ -69,6 +69,7 @@ def test_utf16_offsets():
     assert utf16_line_starts("") == [0]
     assert utf16_line_starts("a\n") == [0, 2]
     assert utf16_line_starts("\U0001f600\r\nb") == [0, 4]
+    assert utf16_line_starts("\ud800\nb") == [0, 2]  # a lone surrogate is one unit
 
 
 class FSPath:
@@ -84,7 +85,8 @@ class FSPath:
         ("foo.py", "python"),
         ("Makefile", "make"),
         ("notes.xyz", None),
-        (FSPath(), "python"),
+        pytest.param(FSPath(), "python", id="pathlike"),
+        pytest.param(b"foo.py", "python", id="bytes"),
     ],
 )
 def test_language_for_filename(name, expected):

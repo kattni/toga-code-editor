@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
-from os import PathLike, fspath
+from os import PathLike, fsdecode
 from types import MappingProxyType
 from typing import Protocol
 
@@ -63,8 +63,11 @@ class Style:
     bold: bool = False
     italic: bool = False
 
-    def __post_init__(self):
-        object.__setattr__(self, "color", Color.parse(self.color))
+    # Written out so the constructor's type is Color | str while the field is Color.
+    def __init__(self, color: Color | str, bold: bool = False, italic: bool = False):
+        object.__setattr__(self, "color", Color.parse(color))
+        object.__setattr__(self, "bold", bold)
+        object.__setattr__(self, "italic", italic)
 
 
 Theme = Mapping[TokenKind, Style]
@@ -164,12 +167,12 @@ class PygmentsHighlighter:
         )
 
 
-def language_for_filename(path: str | PathLike) -> str | None:
+def language_for_filename(path: str | bytes | PathLike) -> str | None:
     """Return the Pygments lexer alias for a filename, or ``None`` if there is none.
 
     The whole filename is matched, so names such as ``Makefile`` resolve.
     """
-    lexer_class = find_lexer_class_for_filename(fspath(path))
+    lexer_class = find_lexer_class_for_filename(fsdecode(path))
     return None if lexer_class is None else lexer_class.aliases[0]
 
 

@@ -9,6 +9,8 @@ class CodeEditor(MultilineTextInput):
         self._set_value("theme", theme)
 
     def set_highlights(self, spans):
+        # Record the theme in force at paint time, as a real backend would use it.
+        self._action("paint", theme=self._get_value("theme", None))
         self._set_value("highlights", spans)
 
     def set_show_line_numbers(self, value):

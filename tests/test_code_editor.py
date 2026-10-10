@@ -3,7 +3,12 @@ import asyncio
 import pytest
 from toga.fonts import MONOSPACE, SERIF, SYSTEM
 from toga.style import Pack
-from toga_dummy.utils import EventLog, assert_action_performed, attribute_value
+from toga_dummy.utils import (
+    EventLog,
+    assert_action_performed,
+    assert_action_performed_with,
+    attribute_value,
+)
 
 from toga_code_editor import DEFAULT_THEME, CodeEditor, Span, Style, TokenKind
 from toga_code_editor.code_editor import REHIGHLIGHT_DELAY
@@ -75,7 +80,8 @@ def test_construction_highlights_once(app):
     editor = CodeEditor(value="x = 1", language="python", theme=theme)
 
     assert EventLog.values(editor, "highlights") == [X_EQUALS_ONE]
-    assert attribute_value(editor, "theme") is theme
+    # The backend had the theme before that paint.
+    assert_action_performed_with(editor, "paint", theme=theme)
 
 
 def test_value_rehighlights(app):
@@ -130,4 +136,5 @@ async def test_rehighlight_failure_is_reported(app):
     task = editor._pending_rehighlight
     await asyncio.sleep(REHIGHLIGHT_DELAY * 2)
     assert [type(context["exception"]) for context in reported] == [RuntimeError]
-    assert task.done()
+    assert reported[0]["message"] == "Re-highlighting the code editor failed"
+    assert reported[0]["task"] is task

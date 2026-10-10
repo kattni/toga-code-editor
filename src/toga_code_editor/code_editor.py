@@ -27,12 +27,20 @@ def _highlighter_for(language: str | None) -> Highlighter:
     return NullHighlighter() if language is None else PygmentsHighlighter(language)
 
 
+def _theme_for(theme: Theme | None) -> Theme:
+    return DEFAULT_THEME if theme is None else theme
+
+
 def _report_rehighlight_failure(task: asyncio.Task) -> None:
     # Hand a failure to the loop's exception handler as soon as the task finishes.
     # Otherwise asyncio only reports it when the task object is garbage collected.
     if not task.cancelled() and (exc := task.exception()) is not None:
         task.get_loop().call_exception_handler(
-            {"message": "Re-highlighting the code editor failed", "exception": exc}
+            {
+                "message": "Re-highlighting the code editor failed",
+                "exception": exc,
+                "task": task,
+            }
         )
 
 
@@ -79,7 +87,7 @@ class CodeEditor(toga.MultilineTextInput):
         # paints the initial value once, with the highlighter and theme in hand.
         self._highlighter: Highlighter = _highlighter_for(language)
         self._language = language
-        self._theme: Theme = DEFAULT_THEME if theme is None else theme
+        self._theme: Theme = _theme_for(theme)
         self._show_line_numbers = True
         self._pending_rehighlight: asyncio.Task | None = None
 
@@ -144,7 +152,7 @@ class CodeEditor(toga.MultilineTextInput):
 
     @theme.setter
     def theme(self, value: Theme | None) -> None:
-        self._theme = DEFAULT_THEME if value is None else value
+        self._theme = _theme_for(value)
         self._impl.set_theme(self._theme)
         self._rehighlight()
 

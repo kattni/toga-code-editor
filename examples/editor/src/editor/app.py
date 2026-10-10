@@ -29,9 +29,11 @@ class Editor(toga.App):
         )
         self.status = toga.Label("", flex=1)
 
-        controls = [self.sample, self.language, self.line_numbers, self.status]
-        # Two rows on a phone, so the controls fit its width.
-        rows = [controls[:2], controls[2:]] if MOBILE else [controls]
+        # Two rows on mobile, so the controls fit a phone's width.
+        if MOBILE:
+            rows = [[self.sample, self.language], [self.line_numbers, self.status]]
+        else:
+            rows = [[self.sample, self.language, self.line_numbers, self.status]]
         toolbar = toga.Box(
             children=[
                 toga.Box(children=row, direction=ROW, align_items="center", gap=5)

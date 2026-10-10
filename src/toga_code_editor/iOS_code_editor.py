@@ -175,18 +175,14 @@ class CodeEditor(MultilineTextInput):
             if style.italic:
                 traits |= UIFontDescriptorTraitItalic
             if traits and base_font is not None:
-                # A font without a face for the requested traits yields no descriptor,
-                # and a descriptor can still yield no font.
+                # A font without a face for the requested traits yields no descriptor.
                 descriptor = base_font.fontDescriptor.fontDescriptorWithSymbolicTraits(
                     traits
                 )
-                font = (
-                    None
-                    if descriptor is None
-                    else UIFont.fontWithDescriptor(descriptor, size=base_font.pointSize)
-                )
-                if font is not None:
-                    attributes[NSFontAttributeName] = font
+                if descriptor is not None:
+                    attributes[NSFontAttributeName] = UIFont.fontWithDescriptor(
+                        descriptor, size=base_font.pointSize
+                    )
             self.attributes[kind] = attributes
 
     def apply_highlights(self):

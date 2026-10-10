@@ -8,7 +8,7 @@ A [Toga](https://toga.beeware.org) widget for editing code, with line numbers an
 pip install toga-code-editor
 ```
 
-The package depends on `pygments` and on `toga-core` 0.5.7 or later, but not 0.6, because it subclasses Toga backend internals that can change between minor versions. Your app installs the Toga backend for its platform as usual; `toga-code-editor` contributes its implementation for that backend through entry points, the same way Toga's own widgets are found.
+The package depends on `pygments` and on `toga-core` 0.5.7 or later in the 0.5 series, because it subclasses Toga backend internals that can change between minor versions. Your app installs the Toga backend for its platform as usual; `toga-code-editor` contributes its implementation for that backend through entry points, the same way Toga's own widgets are found.
 
 ## Usage
 
@@ -58,7 +58,7 @@ editor.theme = theme
 - **iOS** and **Android** draw the gutter themselves. Theme colors do not change with the system appearance; the default theme is chosen to be legible on both light and dark backgrounds.
 - Highlighting re-lexes the whole buffer after a short pause in typing. Files of a few thousand lines are fine on a desktop; very large files are slower on phones.
 - Some third-party Android keyboards ignore the flag that disables suggestions.
-- On Android, the widget asks the window to shrink its content when the soft keyboard appears, so the editor scrolls internally and the rest of the layout stays put. It only does this when the app has not chosen a soft-input mode itself. Android deprecated that request in API 30 and ignores it on Android 15 and later for apps that target SDK 35 or later, which run edge to edge; there the window keeps its size when the keyboard appears. Briefcase's current Android template targets SDK 36, so the example app is in that group.
+- On Android, the widget asks the window to shrink its content when the soft keyboard appears, so the editor scrolls internally and the rest of the layout stays put. It only does this when the app has not chosen a soft-input mode itself. Android deprecated that request in API 30. On Android 15 and later, an app that targets SDK 35 or later runs edge to edge unless it opts out, and the request is ignored, so the keyboard can cover the bottom of the editor. The example app is in that group, since Briefcase targets SDK 36.
 
 ## Developing
 

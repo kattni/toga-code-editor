@@ -60,7 +60,7 @@ CodeEditor = "toga_code_editor.dummy_code_editor:CodeEditor"
 
 A backend with no table gets the factory's standard `NotImplementedError`, which names the backend.
 
-Tooling: ruff for lint and format, pre-commit, tox with coverage, towncrier fragments in `changes/`, and BeeWare's shared `python-package-create` workflow for CI. Python support matches toga-core 0.5.7. License BSD-3-Clause.
+Tooling: ruff for lint and format, pre-commit, tox with coverage, towncrier fragments in `changes/`, and a GitHub Actions workflow for CI. Python support matches toga-core 0.5.7. License BSD-3-Clause.
 
 ## Public API
 

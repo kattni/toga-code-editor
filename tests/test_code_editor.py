@@ -3,7 +3,7 @@ import asyncio
 import pytest
 from toga.fonts import MONOSPACE, SERIF, SYSTEM
 from toga.style import Pack
-from toga_dummy.utils import assert_action_performed, attribute_value
+from toga_dummy.utils import EventLog, assert_action_performed, attribute_value
 
 from toga_code_editor import DEFAULT_THEME, CodeEditor, Span, Style, TokenKind
 from toga_code_editor.code_editor import REHIGHLIGHT_DELAY
@@ -69,6 +69,15 @@ def test_theme_and_line_numbers(app):
     assert attribute_value(editor, "show_line_numbers") is False
 
 
+def test_construction_highlights_once(app):
+    """The initial value, language, and theme are painted in a single pass."""
+    theme = {TokenKind.NUMBER: Style("red")}
+    editor = CodeEditor(value="x = 1", language="python", theme=theme)
+
+    assert EventLog.values(editor, "highlights") == [X_EQUALS_ONE]
+    assert attribute_value(editor, "theme") is theme
+
+
 def test_value_rehighlights(app):
     editor = CodeEditor(language="python")
     editor.value = "x = 1"
@@ -95,3 +104,30 @@ async def test_native_change_debounces(app):
 
     await asyncio.sleep(REHIGHLIGHT_DELAY * 2)
     assert attribute_value(editor, "highlights") == X_EQUALS_ONE
+
+    # A programmatic assignment re-highlights now and cancels the pending pass.
+    editor._impl.simulate_change()
+    editor.value = "x = 2"
+    assert editor._pending_rehighlight is None
+
+
+async def test_rehighlight_failure_is_reported(app):
+    """A failure in the debounced re-highlight reaches the loop's exception handler."""
+
+    class BrokenHighlighter:
+        def highlight(self, text):
+            raise RuntimeError("lexer failed")
+
+    reported = []
+    asyncio.get_running_loop().set_exception_handler(
+        lambda loop, context: reported.append(context)
+    )
+    editor = CodeEditor()
+    editor._highlighter = BrokenHighlighter()
+
+    editor._impl.simulate_change()
+    # Hold the task, so garbage collection cannot be what reports the failure.
+    task = editor._pending_rehighlight
+    await asyncio.sleep(REHIGHLIGHT_DELAY * 2)
+    assert [type(context["exception"]) for context in reported] == [RuntimeError]
+    assert task.done()

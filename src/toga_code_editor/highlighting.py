@@ -4,6 +4,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from os import PathLike, fspath
+from types import MappingProxyType
 from typing import Protocol
 
 from pygments.lexers import find_lexer_class_for_filename, get_lexer_by_name
@@ -69,18 +70,22 @@ class Style:
 Theme = Mapping[TokenKind, Style]
 """A mapping from token kind to style. Kinds absent from the theme are left unstyled."""
 
-DEFAULT_THEME: Theme = {
-    TokenKind.KEYWORD: Style("#a626a4"),
-    TokenKind.BUILTIN: Style("#0184bc"),
-    TokenKind.DEFINITION: Style("#4078f2", bold=True),
-    TokenKind.DECORATOR: Style("#986801"),
-    TokenKind.STRING: Style("#50a14f"),
-    TokenKind.NUMBER: Style("#986801"),
-    TokenKind.COMMENT: Style("#8a8a8a", italic=True),
-    TokenKind.TAG: Style("#e45649"),
-    TokenKind.ATTRIBUTE: Style("#986801"),
-    TokenKind.VARIABLE: Style("#e45649"),
-}
+# Read-only, so no editor can change the default under another; unpack it with
+# ``{**DEFAULT_THEME, ...}`` to build a custom theme.
+DEFAULT_THEME: Theme = MappingProxyType(
+    {
+        TokenKind.KEYWORD: Style("#a626a4"),
+        TokenKind.BUILTIN: Style("#0184bc"),
+        TokenKind.DEFINITION: Style("#4078f2", bold=True),
+        TokenKind.DECORATOR: Style("#986801"),
+        TokenKind.STRING: Style("#50a14f"),
+        TokenKind.NUMBER: Style("#986801"),
+        TokenKind.COMMENT: Style("#8a8a8a", italic=True),
+        TokenKind.TAG: Style("#e45649"),
+        TokenKind.ATTRIBUTE: Style("#986801"),
+        TokenKind.VARIABLE: Style("#e45649"),
+    }
+)
 
 # Ordered most-specific first: the first row whose Pygments type contains the token
 # wins, so Operator.Word must precede Operator. Anything unmatched, including bare

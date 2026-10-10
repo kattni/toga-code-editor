@@ -23,6 +23,19 @@ REHIGHLIGHT_DELAY = 0.15
 """Seconds to wait after the last native edit before re-highlighting."""
 
 
+def _highlighter_for(language: str | None) -> Highlighter:
+    return NullHighlighter() if language is None else PygmentsHighlighter(language)
+
+
+def _report_rehighlight_failure(task: asyncio.Task) -> None:
+    # Hand a failure to the loop's exception handler as soon as the task finishes.
+    # Otherwise asyncio only reports it when the task object is garbage collected.
+    if not task.cancelled() and (exc := task.exception()) is not None:
+        task.get_loop().call_exception_handler(
+            {"message": "Re-highlighting the code editor failed", "exception": exc}
+        )
+
+
 class CodeEditor(toga.MultilineTextInput):
     def __init__(
         self,
@@ -61,12 +74,14 @@ class CodeEditor(toga.MultilineTextInput):
         ):
             kwargs["font_family"] = MONOSPACE
 
-        # State the inherited value setter needs before super().__init__() runs.
-        self._highlighter: Highlighter = NullHighlighter()
-        self._language: str | None = None
-        self._theme: Theme = DEFAULT_THEME
+        # Resolve the highlighting state before the widget exists: an unknown
+        # language raises before anything is created, and the inherited constructor
+        # paints the initial value once, with the highlighter and theme in hand.
+        self._highlighter: Highlighter = _highlighter_for(language)
+        self._language = language
+        self._theme: Theme = DEFAULT_THEME if theme is None else theme
         self._show_line_numbers = True
-        self._pending_rehighlight = None
+        self._pending_rehighlight: asyncio.Task | None = None
 
         super().__init__(
             id=id,
@@ -78,8 +93,6 @@ class CodeEditor(toga.MultilineTextInput):
             **kwargs,
         )
 
-        self.theme = theme
-        self.language = language
         self.show_line_numbers = show_line_numbers
 
     @cached_property
@@ -97,7 +110,11 @@ class CodeEditor(toga.MultilineTextInput):
             return get_factory("toga_code_editor")
 
     def _create(self) -> Any:
-        return self.factory.CodeEditor(interface=self)
+        impl = self.factory.CodeEditor(interface=self)
+        # The backend needs the theme before the inherited constructor sets the
+        # initial value, which paints the first highlights.
+        impl.set_theme(self._theme)
+        return impl
 
     @toga.MultilineTextInput.value.setter
     def value(self, value: object) -> None:
@@ -115,7 +132,7 @@ class CodeEditor(toga.MultilineTextInput):
 
     @language.setter
     def language(self, value: str | None) -> None:
-        highlighter = NullHighlighter() if value is None else PygmentsHighlighter(value)
+        highlighter = _highlighter_for(value)
         self._language = value
         self._highlighter = highlighter
         self._rehighlight()
@@ -154,9 +171,9 @@ class CodeEditor(toga.MultilineTextInput):
         timer added from a native callback would otherwise never fire.
         """
         self._cancel_pending_rehighlight()
-        self._pending_rehighlight = toga.App.app.loop.create_task(
-            self._rehighlight_after_delay()
-        )
+        task = toga.App.app.loop.create_task(self._rehighlight_after_delay())
+        task.add_done_callback(_report_rehighlight_failure)
+        self._pending_rehighlight = task
 
     async def _rehighlight_after_delay(self) -> None:
         await asyncio.sleep(REHIGHLIGHT_DELAY)

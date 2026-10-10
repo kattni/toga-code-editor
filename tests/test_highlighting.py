@@ -1,9 +1,11 @@
 import pytest
 
 from toga_code_editor.highlighting import (
+    DEFAULT_THEME,
     NullHighlighter,
     PygmentsHighlighter,
     Span,
+    Style,
     TokenKind,
     language_for_filename,
     merge_spans,
@@ -37,6 +39,12 @@ def test_merge_spans_drops_empty_spans():
         Span(1, 2, TokenKind.NUMBER),
     ]
     assert merge_spans(spans) == [Span(0, 2, TokenKind.NUMBER)]
+
+
+def test_default_theme_is_read_only():
+    """One editor cannot change the default theme under another."""
+    with pytest.raises(TypeError):
+        DEFAULT_THEME[TokenKind.KEYWORD] = Style("red")
 
 
 def test_unknown_language():

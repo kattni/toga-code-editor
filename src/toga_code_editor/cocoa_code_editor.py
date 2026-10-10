@@ -38,8 +38,14 @@ NSItalicFontMask = 1 << 0
 NSBoldFontMask = 1 << 1
 
 GUTTER_PADDING = 6
-# NSPasteboardTypeString; toga_cocoa does not bind the pasteboard constants.
-NSPasteboardTypeString = "public.utf8-plain-text"
+# The pasteboard types the editor reads; toga_cocoa binds none of these constants.
+# NSTextView's drag-and-drop still matches the legacy names, so both spellings of
+# "string" are needed, and the filenames type keeps "drop a file, get its path".
+PLAIN_TEXT_PASTEBOARD_TYPES = [
+    "public.utf8-plain-text",  # NSPasteboardTypeString
+    "NSStringPboardType",
+    "NSFilenamesPboardType",
+]
 
 
 class TogaCodeTextView(TogaTextView):
@@ -50,12 +56,12 @@ class TogaCodeTextView(TogaTextView):
         self.impl.text_changed()
 
     # Rich text from another app would keep attributes that the re-highlight never
-    # resets. Reading only plain text from the pasteboard covers paste, drag and
-    # drop, and Services alike; the paste: override is belt and braces for Cmd-V.
+    # resets. Reading only plain-text types from the pasteboard covers paste, drag
+    # and drop, and Services alike; the paste: override is belt and braces for Cmd-V.
 
     @objc_method
     def readablePasteboardTypes(self) -> objc_id:
-        return [NSPasteboardTypeString]
+        return PLAIN_TEXT_PASTEBOARD_TYPES
 
     @objc_method
     def paste_(self, sender) -> None:

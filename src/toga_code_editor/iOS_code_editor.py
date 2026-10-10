@@ -121,11 +121,19 @@ class CodeEditor(MultilineTextInput):
         # the gutter can push the placeholder right.
         label = self.placeholder_label.ptr.value
         self.placeholder_leading = next(
-            constraint
-            for constraint in self.native.constraints()
-            if constraint.firstItem.ptr.value == label
-            and constraint.firstAttribute == NSLayoutAttributeLeading
+            (
+                constraint
+                for constraint in self.native.constraints()
+                if constraint.firstItem.ptr.value == label
+                and constraint.firstAttribute == NSLayoutAttributeLeading
+            ),
+            None,
         )
+        if self.placeholder_leading is None:
+            raise RuntimeError(
+                "toga_iOS no longer gives its placeholder label a leading constraint; "
+                "the gutter cannot push the placeholder right"
+            )
         self.placeholder_inset = self.placeholder_leading.constant
 
     # Inherited MultilineTextInput methods that must keep the gutter and colors in sync

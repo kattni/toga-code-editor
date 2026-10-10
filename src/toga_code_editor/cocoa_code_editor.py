@@ -6,6 +6,7 @@ from rubicon.objc import (
     NSRange,
     NSRect,
     ObjCClass,
+    objc_id,
     objc_method,
     objc_property,
 )
@@ -37,6 +38,8 @@ NSItalicFontMask = 1 << 0
 NSBoldFontMask = 1 << 1
 
 GUTTER_PADDING = 6
+# NSPasteboardTypeString; toga_cocoa does not bind the pasteboard constants.
+NSPasteboardTypeString = "public.utf8-plain-text"
 
 
 class TogaCodeTextView(TogaTextView):
@@ -46,10 +49,16 @@ class TogaCodeTextView(TogaTextView):
         self.interface.on_change()
         self.impl.text_changed()
 
+    # Rich text from another app would keep attributes that the re-highlight never
+    # resets. Reading only plain text from the pasteboard covers paste, drag and
+    # drop, and Services alike; the paste: override is belt and braces for Cmd-V.
+
+    @objc_method
+    def readablePasteboardTypes(self) -> objc_id:
+        return [NSPasteboardTypeString]
+
     @objc_method
     def paste_(self, sender) -> None:
-        # Rich text from another app would keep attributes that the re-highlight
-        # never resets, so paste the plain text only.
         self.pasteAsPlainText(sender)
 
 
@@ -248,13 +257,13 @@ class CodeEditor(MultilineTextInput):
         layout = self.layout_manager
         container = self.native_text.textContainer
         visible = self.native_text.visibleRect
-        inset = self.native_text.textContainerInset
+        # The layout manager works in container coordinates; textContainerOrigin is
+        # where the container sits in the view, inset included.
+        origin = self.native_text.textContainerOrigin
         text_length = self.native_text.textStorage.length()
 
-        # The layout manager works in container coordinates, which sit inset.width
-        # and inset.height inside the view's own.
         container_rect = NSRect(
-            NSPoint(visible.origin.x - inset.width, visible.origin.y - inset.height),
+            NSPoint(visible.origin.x - origin.x, visible.origin.y - origin.y),
             visible.size,
         )
         glyph_range = layout.glyphRangeForBoundingRect(
@@ -282,5 +291,5 @@ class CodeEditor(MultilineTextInput):
                 )
             label = self.gutter_label(str(number))
             x = thickness - GUTTER_PADDING - label.size().width
-            y = fragment.origin.y + inset.height - visible.origin.y
+            y = fragment.origin.y + origin.y - visible.origin.y
             label.drawAtPoint(NSPoint(x, y))

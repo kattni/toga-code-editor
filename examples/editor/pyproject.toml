@@ -1,17 +1,20 @@
 [build-system]
-requires = ["briefcase"]
+requires = [
+    "setuptools==84.0.0",
+    "setuptools_scm==10.3.4",
+]
+build-backend = "setuptools.build_meta"
 
 [project]
+dynamic = ["version"]
 name = "editor"
-version = "0.0.1"
 
 [tool.briefcase]
 project_name = "Editor"
 bundle = "org.beeware.examples"
-version = "0.0.1"
 url = "https://beeware.org"
 license = "BSD-3-Clause"
-license-files = ["LICENSE"]
+license-files = ["../../LICENSE"]
 author = "Kattni"
 author_email = "hello@kattni.com"
 description = "A code editor demonstrating the toga-code-editor widget."
@@ -63,3 +66,6 @@ android {
     }
 }
 """
+
+[tool.setuptools_scm]
+root = "../../"

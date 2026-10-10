@@ -30,7 +30,7 @@ def test_defaults(app):
 
 
 @pytest.mark.parametrize(
-    "kwargs, expected",
+    ("kwargs", "expected"),
     [
         ({"font_family": SERIF}, [SERIF]),
         ({"style": Pack(font_family=SERIF)}, [SERIF]),

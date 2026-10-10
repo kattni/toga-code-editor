@@ -27,7 +27,7 @@ from toga_iOS.widgets.multilinetextinput import (
     TogaMultilineTextView,
 )
 
-from .highlighting import to_utf16_spans, utf16_line_starts
+from ..highlighting import to_utf16_spans, utf16_line_starts
 
 UIColor.declare_class_property("labelColor")
 UIColor.declare_class_property("secondaryLabelColor")

@@ -87,3 +87,16 @@ briefcase run android -r
 ```
 
 Every user-visible change needs a fragment in `changes/`, named `<issue>.<kind>.md` where kind is `feature`, `bugfix`, `doc`, or `misc`. Release notes are assembled with `towncrier build`.
+
+## Community
+
+`toga-code-editor` is part of the [BeeWare suite](http://beeware.org). You can talk to the community through:
+
+- [@beeware@fosstodon.org on Mastodon](https://fosstodon.org/@beeware)
+- [Discord](https://beeware.org/bee/chat/)
+
+We foster a welcoming and respectful community as described in our [BeeWare Community Code of Conduct](http://beeware.org/community/behavior/).
+
+## Contributing
+
+If you experience problems with the `CodeEditor` widget, [log them on GitHub](https://github.com/beeware/toga-code-editor/issues). If you want to contribute code, please [fork the code](https://github.com/beeware/toga-code-editor) and [submit a pull request](https://github.com/beeware/toga-code-editor/pulls).

@@ -27,7 +27,7 @@ from toga_cocoa.libs import (
 )
 from toga_cocoa.widgets.multilinetextinput import MultilineTextInput, TogaTextView
 
-from .highlighting import to_utf16_spans, utf16_line_starts
+from ..highlighting import to_utf16_spans, utf16_line_starts
 
 NSRulerView = ObjCClass("NSRulerView")
 

@@ -80,7 +80,7 @@ class FSPath:
 
 
 @pytest.mark.parametrize(
-    "name, expected",
+    ("name", "expected"),
     [
         ("foo.py", "python"),
         ("Makefile", "make"),

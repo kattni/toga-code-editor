@@ -13,7 +13,7 @@ from toga_android.colors import native_color
 from toga_android.widgets.base import suppress_reference_error
 from toga_android.widgets.multilinetextinput import MultilineTextInput
 
-from .highlighting import to_utf16_spans
+from ..highlighting import to_utf16_spans
 
 GUTTER_PADDING = 6  # CSS pixels; scaled to physical pixels at creation
 
